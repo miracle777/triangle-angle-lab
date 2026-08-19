@@ -1,0 +1,901 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>三角形の学習ツール｜自由研究モード＋問題モード</title>
+  <meta name="description" content="三角形の内角の和を学べる自由研究モードと、角度の問題に取り組める問題モードを備えた、1ファイル完結の学習ツールです。">
+  <style>
+    :root{
+      --bg:#f4f6f8;
+      --card:#ffffff;
+      --ink:#172033;
+      --muted:#667085;
+      --line:#1769c2;
+      --accent:#e91e63;
+      --soft:#eef5ff;
+      --soft2:#fff5f8;
+      --border:#d9e2ec;
+      --ok:#137333;
+      --ng:#b42318;
+      --warn:#8a4b00;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI","Yu Gothic","Hiragino Kaku Gothic ProN",sans-serif;
+      color:var(--ink);
+      background:var(--bg);
+      line-height:1.6;
+    }
+    main{
+      width:min(1120px, calc(100% - 24px));
+      margin:24px auto;
+    }
+    .card{
+      background:var(--card);
+      border-radius:22px;
+      box-shadow:0 12px 36px rgba(16,24,40,.10);
+      overflow:hidden;
+    }
+    header{
+      padding:24px 26px 12px;
+      border-bottom:1px solid #eef2f6;
+    }
+    h1{
+      margin:0 0 8px;
+      font-size:clamp(1.4rem, 3vw, 2rem);
+    }
+    header p{
+      margin:0;
+      color:var(--muted);
+    }
+
+    .tabs{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      padding:18px 22px 0;
+    }
+    .tab{
+      appearance:none;
+      border:1px solid var(--border);
+      background:#fff;
+      color:var(--ink);
+      border-radius:999px;
+      padding:10px 16px;
+      font:inherit;
+      font-weight:800;
+      cursor:pointer;
+    }
+    .tab.active{
+      background:var(--line);
+      color:#fff;
+      border-color:var(--line);
+    }
+
+    .mode-panel{
+      display:none;
+      padding:18px 22px 24px;
+    }
+    .mode-panel.active{
+      display:block;
+    }
+
+    .lead{
+      margin:0 0 14px;
+      color:var(--muted);
+    }
+
+    .stage{
+      position:relative;
+      border:1px solid #edf1f5;
+      background:#fbfcfe;
+      border-radius:18px;
+      overflow:hidden;
+      touch-action:none;
+      user-select:none;
+    }
+    svg{
+      display:block;
+      width:100%;
+      height:auto;
+    }
+
+    .edge{
+      stroke:var(--line);
+      stroke-width:7;
+      stroke-linecap:round;
+      stroke-linejoin:round;
+      fill:none;
+    }
+    .angle-arc{
+      fill:none;
+      stroke:var(--accent);
+      stroke-width:5;
+      stroke-linecap:round;
+    }
+    .angle-arc-blue{
+      fill:none;
+      stroke:var(--line);
+      stroke-width:5;
+      stroke-linecap:round;
+    }
+    .angle-label{
+      font-size:28px;
+      font-weight:800;
+      fill:var(--ink);
+      paint-order:stroke;
+      stroke:#fff;
+      stroke-width:7px;
+      stroke-linejoin:round;
+    }
+    .angle-label-pink{
+      font-size:28px;
+      font-weight:800;
+      fill:var(--accent);
+      paint-order:stroke;
+      stroke:#fff;
+      stroke-width:7px;
+      stroke-linejoin:round;
+    }
+    .vertex-label{
+      font-size:24px;
+      font-weight:800;
+      fill:var(--line);
+      paint-order:stroke;
+      stroke:#fff;
+      stroke-width:6px;
+    }
+    .handle{
+      fill:#fff;
+      stroke:var(--line);
+      stroke-width:6;
+      cursor:grab;
+      filter:drop-shadow(0 2px 4px rgba(0,0,0,.12));
+    }
+    .handle-hit{
+      fill:transparent;
+      cursor:grab;
+    }
+
+    .controls{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px 16px;
+      align-items:center;
+      padding:14px 2px 2px;
+    }
+    button, input, select{
+      font:inherit;
+    }
+    .btn{
+      appearance:none;
+      border:1px solid var(--border);
+      background:#fff;
+      color:var(--ink);
+      border-radius:10px;
+      padding:10px 14px;
+      font-weight:800;
+      cursor:pointer;
+    }
+    .btn:hover{
+      background:#f8fafc;
+    }
+    .btn-primary{
+      background:var(--line);
+      color:#fff;
+      border-color:var(--line);
+    }
+    .btn-primary:hover{
+      filter:brightness(.97);
+    }
+    label.ctrl{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      color:var(--muted);
+      font-weight:700;
+    }
+    input[type="checkbox"]{
+      width:18px;
+      height:18px;
+      accent-color:var(--line);
+    }
+
+    .grid4{
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      gap:12px;
+      margin-top:14px;
+    }
+    .grid2{
+      display:grid;
+      grid-template-columns:1.1fr .9fr;
+      gap:18px;
+      align-items:start;
+    }
+    .box{
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:14px;
+      background:#fff;
+    }
+    .box strong{
+      display:block;
+      margin-top:4px;
+      font-size:1.35rem;
+    }
+    .sum{
+      background:var(--soft);
+      border-color:#cfe2ff;
+    }
+    .problem-card{
+      background:#fff;
+      border:1px solid var(--border);
+      border-radius:16px;
+      padding:14px;
+    }
+    .problem-title{
+      margin:0 0 10px;
+      font-weight:900;
+      font-size:1.05rem;
+    }
+    .problem-text{
+      margin:0;
+      color:var(--muted);
+    }
+    .answer-row{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+      margin-top:14px;
+    }
+    .answer-row input[type="number"]{
+      width:140px;
+      padding:10px 12px;
+      border:1px solid var(--border);
+      border-radius:10px;
+      background:#fff;
+    }
+    .feedback{
+      margin-top:12px;
+      min-height:28px;
+      font-weight:800;
+    }
+    .feedback.ok{ color:var(--ok); }
+    .feedback.ng{ color:var(--ng); }
+    .feedback.warn{ color:var(--warn); }
+
+    .hidden{
+      display:none !important;
+    }
+
+    details{
+      border:1px solid var(--border);
+      border-radius:14px;
+      background:#fff;
+      margin-top:12px;
+      overflow:hidden;
+    }
+    summary{
+      cursor:pointer;
+      font-weight:800;
+      padding:12px 14px;
+      background:#fafcff;
+    }
+    details > div{
+      padding:14px;
+    }
+    .steps{
+      margin:0;
+      padding-left:20px;
+    }
+    .steps li{
+      margin:8px 0;
+    }
+    .tag{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      background:var(--soft2);
+      color:#b21c58;
+      padding:4px 10px;
+      border-radius:999px;
+      font-size:.92rem;
+      font-weight:800;
+    }
+    .note{
+      margin-top:14px;
+      color:var(--muted);
+      font-size:.95rem;
+    }
+    .sr-only{
+      position:absolute;
+      width:1px;height:1px;
+      padding:0;margin:-1px;
+      overflow:hidden;
+      clip:rect(0,0,0,0);
+      white-space:nowrap;
+      border:0;
+    }
+
+    @media (max-width: 860px){
+      .grid2{ grid-template-columns:1fr; }
+      .grid4{ grid-template-columns:repeat(2,1fr); }
+      main{ margin:12px auto; }
+      header{ padding:20px 18px 10px; }
+      .tabs{ padding:14px 14px 0; }
+      .mode-panel{ padding:14px 14px 20px; }
+      .angle-label,.angle-label-pink{ font-size:24px; }
+      .vertex-label{ font-size:21px; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <section class="card">
+    <header>
+      <h1>三角形の学習ツール</h1>
+      <p>自由研究に使える「自由研究モード」と、解き方を練習できる「問題モード」を1つにまとめた、公開しやすい1ファイル完結版です。</p>
+    </header>
+
+    <div class="tabs" role="tablist" aria-label="学習モードの切り替え">
+      <button class="tab active" id="tabFree" role="tab" aria-selected="true" aria-controls="panelFree">自由研究モード</button>
+      <button class="tab" id="tabQuiz" role="tab" aria-selected="false" aria-controls="panelQuiz">問題モード</button>
+    </div>
+
+    <section id="panelFree" class="mode-panel active" role="tabpanel" aria-labelledby="tabFree">
+      <p class="lead">青い丸 A・B・C をドラッグすると三角形の形が変わります。どの形でも、三角形の内角の合計は 180° です。</p>
+
+      <div class="stage">
+        <svg id="svgFree" viewBox="0 0 900 560" role="img" aria-labelledby="freeTitle freeDesc">
+          <title id="freeTitle">ドラッグできる三角形</title>
+          <desc id="freeDesc">3つの頂点をドラッグすると各内角を自動計算し、合計が180度になることを表示します。</desc>
+
+          <polygon id="triangle" class="edge" points=""></polygon>
+
+          <path id="arcA" class="angle-arc"></path>
+          <path id="arcB" class="angle-arc"></path>
+          <path id="arcC" class="angle-arc"></path>
+
+          <text id="angleA" class="angle-label"></text>
+          <text id="angleB" class="angle-label"></text>
+          <text id="angleC" class="angle-label"></text>
+
+          <text id="nameA" class="vertex-label">A</text>
+          <text id="nameB" class="vertex-label">B</text>
+          <text id="nameC" class="vertex-label">C</text>
+
+          <circle id="hitA" class="handle-hit" r="34" data-point="A"></circle>
+          <circle id="hitB" class="handle-hit" r="34" data-point="B"></circle>
+          <circle id="hitC" class="handle-hit" r="34" data-point="C"></circle>
+
+          <circle id="pointA" class="handle" r="13" data-point="A" tabindex="0" aria-label="頂点A"></circle>
+          <circle id="pointB" class="handle" r="13" data-point="B" tabindex="0" aria-label="頂点B"></circle>
+          <circle id="pointC" class="handle" r="13" data-point="C" tabindex="0" aria-label="頂点C"></circle>
+        </svg>
+        <div id="liveFree" class="sr-only" aria-live="polite"></div>
+      </div>
+
+      <div class="controls">
+        <button id="resetFree" class="btn" type="button">最初の形に戻す</button>
+        <label class="ctrl"><input id="lockBase" type="checkbox" checked> 底辺 AB を水平に保つ</label>
+        <label class="ctrl"><input id="showAngles" type="checkbox" checked> 角度を図に表示</label>
+      </div>
+
+      <div class="grid4" aria-label="角度の計算結果">
+        <div class="box">∠A<strong id="outA">--°</strong></div>
+        <div class="box">∠B<strong id="outB">--°</strong></div>
+        <div class="box">∠C<strong id="outC">--°</strong></div>
+        <div class="box sum">合計<strong id="outSum">180°</strong></div>
+      </div>
+
+      <details>
+        <summary>自由研究のまとめ例</summary>
+        <div>
+          <p>三角形の頂点の位置を変えても、三角形の3つの内角の合計は常に180°になった。</p>
+          <p>いろいろな形の三角形で確かめても結果は同じだったため、「三角形の内角の和は180°」という性質が確認できた。</p>
+        </div>
+      </details>
+    </section>
+
+    <section id="panelQuiz" class="mode-panel" role="tabpanel" aria-labelledby="tabQuiz">
+      <p class="lead">角度の問題に挑戦できます。答えを入力して正解を確認し、必要なら解説も開いてください。</p>
+
+      <div class="grid2">
+        <div>
+          <div class="stage">
+            <svg id="svgQuiz" viewBox="0 0 900 540" role="img" aria-labelledby="quizTitle quizDesc">
+              <title id="quizTitle">角度問題の図</title>
+              <desc id="quizDesc">左の内角と上の外角が与えられ、右下の外角xを求める問題図です。問題の角度に合わせて図形も変化します。</desc>
+
+              <line id="qBase" class="edge" x1="120" y1="410" x2="760" y2="410"></line>
+              <line id="qVertical" class="edge" x1="560" y1="410" x2="560" y2="165"></line>
+              <line id="qSlope" class="edge" x1="120" y1="410" x2="560" y2="165"></line>
+              <line id="qSlopeExt" class="edge" x1="560" y1="165" x2="690" y2="75"></line>
+
+              <path id="qArcLeft" class="angle-arc-blue"></path>
+              <path id="qArcTop" class="angle-arc-blue"></path>
+              <path id="qArcBottom" class="angle-arc"></path>
+
+              <text id="qLabelLeft" class="angle-label"></text>
+              <text id="qLabelTop" class="angle-label"></text>
+              <text id="qLabelBottom" class="angle-label-pink">x</text>
+            </svg>
+          </div>
+
+          <div class="controls">
+            <button id="newProblem" class="btn btn-primary" type="button">新しい問題</button>
+            <button id="showAnswer" class="btn" type="button">答えを見る</button>
+          </div>
+        </div>
+
+        <div class="problem-card">
+          <p class="problem-title">問題</p>
+          <p class="problem-text">図の <span class="tag">x</span> は何度ですか。左の内角と上の外角を手がかりにして考えてみましょう。</p>
+
+          <div class="box sum" style="margin-top:14px;">
+            左の角度 <strong id="problemLeft">50°</strong>
+            上の外角 <strong id="problemTop">130°</strong>
+          </div>
+
+          <div class="answer-row">
+            <label for="answerX" style="font-weight:800;">x = </label>
+            <input id="answerX" type="number" inputmode="numeric" step="1" placeholder="角度を入力">
+            <span style="font-weight:800;">°</span>
+            <button id="checkAnswer" class="btn btn-primary" type="button">答え合わせ</button>
+          </div>
+
+          <div id="feedback" class="feedback" aria-live="polite"></div>
+
+          <details id="explainBox">
+            <summary>解き方を見る</summary>
+            <div>
+              <ol class="steps">
+                <li>上の角度は外角なので、三角形の上の内角は <span id="step1Expr">180° − 130° = 50°</span> です。</li>
+                <li>三角形の内角の合計は 180° なので、右下の内角は <span id="step2Expr">180° − 50° − 50° = 80°</span> です。</li>
+                <li>x はその右下の内角の隣の外角なので、<span id="step3Expr">180° − 80° = 100°</span> です。</li>
+              </ol>
+              <p style="margin:12px 0 0; font-weight:800;">したがって、答えは <span id="finalAnswer">100°</span> です。</p>
+            </div>
+          </details>
+
+          <div class="note">
+            学習のポイント：<br>
+            ・外角と内角は一直線上なら 180°<br>
+            ・三角形の内角の合計は 180°<br>
+            この2つを組み合わせると解けます。
+          </div>
+        </div>
+      </div>
+    </section>
+  </section>
+</main>
+
+<script>
+(() => {
+  "use strict";
+
+  const $ = id => document.getElementById(id);
+
+  // ---------- 共通ヘルパー ----------
+  function clamp(v, min, max) {
+    return Math.max(min, Math.min(max, v));
+  }
+  function distance(p, q) {
+    return Math.hypot(p.x - q.x, p.y - q.y);
+  }
+  function signedArea(a, b, c) {
+    return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
+  }
+  function angleAt(p, q, r) {
+    const v1 = { x: p.x - q.x, y: p.y - q.y };
+    const v2 = { x: r.x - q.x, y: r.y - q.y };
+    const dot = v1.x * v2.x + v1.y * v2.y;
+    const cross = Math.abs(v1.x * v2.y - v1.y * v2.x);
+    return Math.atan2(cross, dot) * 180 / Math.PI;
+  }
+  function unit(from, to) {
+    const dx = to.x - from.x;
+    const dy = to.y - from.y;
+    const len = Math.hypot(dx, dy) || 1;
+    return { x: dx / len, y: dy / len };
+  }
+  function setTextPos(el, p) {
+    el.setAttribute("x", p.x);
+    el.setAttribute("y", p.y);
+    el.setAttribute("text-anchor", "middle");
+    el.setAttribute("dominant-baseline", "middle");
+  }
+  function polar(center, r, deg) {
+    const rad = deg * Math.PI / 180;
+    return { x: center.x + Math.cos(rad) * r, y: center.y + Math.sin(rad) * r };
+  }
+  function arcPath(center, r, startDeg, endDeg, sweep = 1) {
+    const start = polar(center, r, startDeg);
+    const end = polar(center, r, endDeg);
+    let diff = endDeg - startDeg;
+    while (diff < 0) diff += 360;
+    while (diff >= 360) diff -= 360;
+    const large = diff > 180 ? 1 : 0;
+    return `M ${start.x.toFixed(2)} ${start.y.toFixed(2)} A ${r} ${r} 0 ${large} ${sweep} ${end.x.toFixed(2)} ${end.y.toFixed(2)}`;
+  }
+  function angleArcPath(vertex, p1, p2, radius = 55) {
+    let a1 = Math.atan2(p1.y - vertex.y, p1.x - vertex.x);
+    let a2 = Math.atan2(p2.y - vertex.y, p2.x - vertex.x);
+    let diff = a2 - a1;
+    while (diff <= -Math.PI) diff += Math.PI * 2;
+    while (diff > Math.PI) diff -= Math.PI * 2;
+    const endAngle = a1 + diff;
+    const start = {
+      x: vertex.x + Math.cos(a1) * radius,
+      y: vertex.y + Math.sin(a1) * radius
+    };
+    const end = {
+      x: vertex.x + Math.cos(endAngle) * radius,
+      y: vertex.y + Math.sin(endAngle) * radius
+    };
+    const sweep = diff >= 0 ? 1 : 0;
+    return `M ${start.x.toFixed(2)} ${start.y.toFixed(2)} A ${radius} ${radius} 0 0 ${sweep} ${end.x.toFixed(2)} ${end.y.toFixed(2)}`;
+  }
+  function bisectorLabel(vertex, p1, p2, distanceFromVertex = 92) {
+    const u1 = unit(vertex, p1);
+    const u2 = unit(vertex, p2);
+    let bx = u1.x + u2.x;
+    let by = u1.y + u2.y;
+    let len = Math.hypot(bx, by);
+    if (len < 0.001) {
+      bx = -u1.y;
+      by = u1.x;
+      len = 1;
+    }
+    return {
+      x: vertex.x + bx / len * distanceFromVertex,
+      y: vertex.y + by / len * distanceFromVertex
+    };
+  }
+
+  // ---------- タブ切り替え ----------
+  const tabFree = $("tabFree");
+  const tabQuiz = $("tabQuiz");
+  const panelFree = $("panelFree");
+  const panelQuiz = $("panelQuiz");
+
+  function activateTab(name) {
+    const isFree = name === "free";
+    tabFree.classList.toggle("active", isFree);
+    tabQuiz.classList.toggle("active", !isFree);
+    tabFree.setAttribute("aria-selected", String(isFree));
+    tabQuiz.setAttribute("aria-selected", String(!isFree));
+    panelFree.classList.toggle("active", isFree);
+    panelQuiz.classList.toggle("active", !isFree);
+  }
+  tabFree.addEventListener("click", () => activateTab("free"));
+  tabQuiz.addEventListener("click", () => activateTab("quiz"));
+
+  // ---------- 自由研究モード ----------
+  const svgFree = $("svgFree");
+  const triangle = $("triangle");
+  const lockBase = $("lockBase");
+  const showAngles = $("showAngles");
+  const liveFree = $("liveFree");
+
+  const initial = {
+    A: { x: 150, y: 430 },
+    B: { x: 720, y: 430 },
+    C: { x: 575, y: 135 }
+  };
+  const pts = JSON.parse(JSON.stringify(initial));
+  let dragging = null;
+
+  const els = {
+    A: { point: $("pointA"), hit: $("hitA"), angle: $("angleA"), arc: $("arcA"), name: $("nameA"), out: $("outA") },
+    B: { point: $("pointB"), hit: $("hitB"), angle: $("angleB"), arc: $("arcB"), name: $("nameB"), out: $("outB") },
+    C: { point: $("pointC"), hit: $("hitC"), angle: $("angleC"), arc: $("arcC"), name: $("nameC"), out: $("outC") }
+  };
+
+  function setCircle(el, p) {
+    el.setAttribute("cx", p.x);
+    el.setAttribute("cy", p.y);
+  }
+  function namePosition(vertex, p1, p2) {
+    const pos = bisectorLabel(vertex, p1, p2, -34);
+    return { x: clamp(pos.x, 24, 876), y: clamp(pos.y, 32, 536) };
+  }
+  function isValidTriangle(candidate) {
+    const a = candidate.A, b = candidate.B, c = candidate.C;
+    if (distance(a,b) < 100 || distance(b,c) < 100 || distance(c,a) < 100) return false;
+    return Math.abs(signedArea(a,b,c)) > 9000;
+  }
+  function renderFree(announce = false) {
+    triangle.setAttribute("points", `${pts.A.x},${pts.A.y} ${pts.B.x},${pts.B.y} ${pts.C.x},${pts.C.y}`);
+
+    for (const k of ["A","B","C"]) {
+      setCircle(els[k].point, pts[k]);
+      setCircle(els[k].hit, pts[k]);
+    }
+
+    const angles = {
+      A: angleAt(pts.B, pts.A, pts.C),
+      B: angleAt(pts.A, pts.B, pts.C),
+      C: angleAt(pts.A, pts.C, pts.B)
+    };
+    const rounded = {
+      A: Math.round(angles.A * 10) / 10,
+      B: Math.round(angles.B * 10) / 10,
+      C: Math.round(angles.C * 10) / 10
+    };
+
+    els.A.arc.setAttribute("d", angleArcPath(pts.A, pts.B, pts.C));
+    els.B.arc.setAttribute("d", angleArcPath(pts.B, pts.A, pts.C));
+    els.C.arc.setAttribute("d", angleArcPath(pts.C, pts.A, pts.B));
+
+    const labelA = bisectorLabel(pts.A, pts.B, pts.C);
+    const labelB = bisectorLabel(pts.B, pts.A, pts.C);
+    const labelC = bisectorLabel(pts.C, pts.A, pts.B);
+
+    setTextPos(els.A.angle, labelA);
+    setTextPos(els.B.angle, labelB);
+    setTextPos(els.C.angle, labelC);
+
+    els.A.angle.textContent = `${rounded.A}°`;
+    els.B.angle.textContent = `${rounded.B}°`;
+    els.C.angle.textContent = `${rounded.C}°`;
+
+    setTextPos(els.A.name, namePosition(pts.A, pts.B, pts.C));
+    setTextPos(els.B.name, namePosition(pts.B, pts.A, pts.C));
+    setTextPos(els.C.name, namePosition(pts.C, pts.A, pts.B));
+
+    els.A.out.textContent = `${rounded.A}°`;
+    els.B.out.textContent = `${rounded.B}°`;
+    els.C.out.textContent = `${rounded.C}°`;
+    $("outSum").textContent = `${Math.round((angles.A + angles.B + angles.C) * 10) / 10}°`;
+
+    const visible = showAngles.checked ? "visible" : "hidden";
+    for (const k of ["A","B","C"]) {
+      els[k].angle.style.visibility = visible;
+      els[k].arc.style.visibility = visible;
+    }
+
+    if (announce) {
+      liveFree.textContent = `角A ${rounded.A}度、角B ${rounded.B}度、角C ${rounded.C}度、合計180度`;
+    }
+  }
+  function svgPointFromEvent(evt) {
+    const rect = svgFree.getBoundingClientRect();
+    return {
+      x: (evt.clientX - rect.left) * 900 / rect.width,
+      y: (evt.clientY - rect.top) * 560 / rect.height
+    };
+  }
+  function movePoint(key, next) {
+    const candidate = JSON.parse(JSON.stringify(pts));
+    candidate[key].x = clamp(next.x, 45, 855);
+    candidate[key].y = clamp(next.y, 45, 515);
+
+    if (lockBase.checked && (key === "A" || key === "B")) {
+      const other = key === "A" ? "B" : "A";
+      candidate[key].y = candidate[other].y;
+    }
+    if (isValidTriangle(candidate)) {
+      pts.A = candidate.A;
+      pts.B = candidate.B;
+      pts.C = candidate.C;
+      renderFree();
+    }
+  }
+  function startDrag(evt) {
+    dragging = evt.currentTarget.dataset.point;
+    evt.currentTarget.setPointerCapture?.(evt.pointerId);
+    evt.preventDefault();
+  }
+  function drag(evt) {
+    if (!dragging) return;
+    movePoint(dragging, svgPointFromEvent(evt));
+  }
+  function endDrag() {
+    if (!dragging) return;
+    dragging = null;
+    renderFree(true);
+  }
+  for (const k of ["A","B","C"]) {
+    for (const target of [els[k].point, els[k].hit]) {
+      target.addEventListener("pointerdown", startDrag);
+    }
+    els[k].point.addEventListener("keydown", evt => {
+      const step = evt.shiftKey ? 20 : 8;
+      let dx = 0, dy = 0;
+      if (evt.key === "ArrowLeft") dx = -step;
+      else if (evt.key === "ArrowRight") dx = step;
+      else if (evt.key === "ArrowUp") dy = -step;
+      else if (evt.key === "ArrowDown") dy = step;
+      else return;
+      evt.preventDefault();
+      movePoint(k, { x: pts[k].x + dx, y: pts[k].y + dy });
+      renderFree(true);
+    });
+  }
+  svgFree.addEventListener("pointermove", drag);
+  svgFree.addEventListener("pointerup", endDrag);
+  svgFree.addEventListener("pointercancel", endDrag);
+  svgFree.addEventListener("pointerleave", evt => {
+    if (evt.buttons === 0) endDrag();
+  });
+  $("resetFree").addEventListener("click", () => {
+    for (const k of ["A","B","C"]) {
+      pts[k].x = initial[k].x;
+      pts[k].y = initial[k].y;
+    }
+    renderFree(true);
+  });
+  showAngles.addEventListener("change", () => renderFree());
+  lockBase.addEventListener("change", () => {
+    if (lockBase.checked) {
+      pts.B.y = pts.A.y;
+      renderFree(true);
+    }
+  });
+
+  // ---------- 問題モード ----------
+  const quiz = {
+    left: 50,
+    topExterior: 130,
+    x: 100
+  };
+
+  function randomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+
+  function makeProblem() {
+    // 左の内角 α と上の内角 γ を5°刻みで作り、
+    // 上の外角 = 180° - γ、右下の外角 x = α + γ とする。
+    // これにより、表示する数値と図形の形が常に一致する。
+    let left = 50;
+    let topInner = 50;
+
+    for (let i = 0; i < 100; i++) {
+      left = randomInt(5, 13) * 5;      // 25°〜65°
+      topInner = randomInt(5, 13) * 5;  // 25°〜65°
+      const bottomInner = 180 - left - topInner;
+      if (bottomInner >= 50 && bottomInner <= 120) break;
+    }
+
+    quiz.left = left;
+    quiz.topExterior = 180 - topInner;
+    quiz.x = left + topInner;
+    renderQuiz();
+    $("answerX").value = "";
+    $("feedback").textContent = "";
+    $("feedback").className = "feedback";
+  }
+
+  function renderQuiz() {
+    $("problemLeft").textContent = `${quiz.left}°`;
+    $("problemTop").textContent = `${quiz.topExterior}°`;
+
+    // 数値から実際の三角形を作る。
+    // α = 左内角、γ = 上内角、β = 右下内角。
+    const alpha = quiz.left;
+    const gamma = 180 - quiz.topExterior;
+    const beta = 180 - alpha - gamma;
+
+    // 底辺AB=1の三角形をいったん数学座標で作る。
+    // 正弦定理より AC / AB = sin(β) / sin(γ)。
+    const rad = deg => deg * Math.PI / 180;
+    const ac = Math.sin(rad(beta)) / Math.sin(rad(gamma));
+    const rawA = { x: 0, y: 0 };
+    const rawB = { x: 1, y: 0 };
+    const rawC = {
+      x: ac * Math.cos(rad(alpha)),
+      y: ac * Math.sin(rad(alpha))
+    };
+
+    // 問題ごとに形が変わってもSVG内へ収まるよう自動フィット。
+    const minX = Math.min(rawA.x, rawB.x, rawC.x);
+    const maxX = Math.max(rawA.x, rawB.x, rawC.x);
+    const maxY = Math.max(rawA.y, rawB.y, rawC.y);
+    const scale = Math.min(540 / Math.max(0.001, maxX - minX), 285 / Math.max(0.001, maxY));
+    const centerRawX = (minX + maxX) / 2;
+    const centerScreenX = 430;
+    const baseY = 420;
+
+    const toScreen = p => ({
+      x: centerScreenX + (p.x - centerRawX) * scale,
+      y: baseY - p.y * scale
+    });
+
+    const A = toScreen(rawA);
+    const B = toScreen(rawB);
+    const C = toScreen(rawC);
+
+    // 斜辺の延長点Dと、底辺の右側延長点E。
+    const slopeUnit = unit(A, C);
+    const D = { x: C.x + slopeUnit.x * 115, y: C.y + slopeUnit.y * 115 };
+    const E = { x: Math.min(840, B.x + 145), y: B.y };
+
+    // 線を問題の角度に合わせて更新する。
+    $("qBase").setAttribute("x1", A.x);
+    $("qBase").setAttribute("y1", A.y);
+    $("qBase").setAttribute("x2", E.x);
+    $("qBase").setAttribute("y2", E.y);
+
+    $("qVertical").setAttribute("x1", B.x);
+    $("qVertical").setAttribute("y1", B.y);
+    $("qVertical").setAttribute("x2", C.x);
+    $("qVertical").setAttribute("y2", C.y);
+
+    $("qSlope").setAttribute("x1", A.x);
+    $("qSlope").setAttribute("y1", A.y);
+    $("qSlope").setAttribute("x2", C.x);
+    $("qSlope").setAttribute("y2", C.y);
+
+    $("qSlopeExt").setAttribute("x1", C.x);
+    $("qSlopeExt").setAttribute("y1", C.y);
+    $("qSlopeExt").setAttribute("x2", D.x);
+    $("qSlopeExt").setAttribute("y2", D.y);
+
+    // 角の円弧も固定角度ではなく、実際の3点から描く。
+    // これで左の50°の円弧が底辺の下へずれる問題も解消する。
+    $("qArcLeft").setAttribute("d", angleArcPath(A, B, C, 55));
+    $("qArcTop").setAttribute("d", angleArcPath(C, B, D, 64));
+    $("qArcBottom").setAttribute("d", angleArcPath(B, C, E, 58));
+
+    setTextPos($("qLabelLeft"), bisectorLabel(A, B, C, 102));
+    setTextPos($("qLabelTop"), bisectorLabel(C, B, D, 104));
+    setTextPos($("qLabelBottom"), bisectorLabel(B, C, E, 96));
+
+    $("qLabelLeft").textContent = `${quiz.left}`;
+    $("qLabelTop").textContent = `${quiz.topExterior}`;
+    $("qLabelBottom").textContent = `x`;
+
+    const topInner = gamma;
+    const bottomInner = beta;
+
+    $("step1Expr").textContent = `180° − ${quiz.topExterior}° = ${topInner}°`;
+    $("step2Expr").textContent = `180° − ${quiz.left}° − ${topInner}° = ${bottomInner}°`;
+    $("step3Expr").textContent = `180° − ${bottomInner}° = ${quiz.x}°`;
+    $("finalAnswer").textContent = `${quiz.x}°`;
+  }
+
+  $("newProblem").addEventListener("click", makeProblem);
+
+  $("checkAnswer").addEventListener("click", () => {
+    const raw = $("answerX").value.trim();
+    const box = $("feedback");
+    if (!raw) {
+      box.textContent = "角度を入力してください。";
+      box.className = "feedback warn";
+      return;
+    }
+    const value = Number(raw);
+    if (!Number.isFinite(value)) {
+      box.textContent = "数値で入力してください。";
+      box.className = "feedback warn";
+      return;
+    }
+    if (Math.round(value) === quiz.x) {
+      box.textContent = `正解です。x = ${quiz.x}° です。`;
+      box.className = "feedback ok";
+    } else {
+      box.textContent = `今回は不正解です。もう一度、外角と内角の関係を見直してみましょう。`;
+      box.className = "feedback ng";
+    }
+  });
+
+  $("showAnswer").addEventListener("click", () => {
+    const box = $("feedback");
+    box.textContent = `答えは x = ${quiz.x}° です。下の「解き方を見る」を開くと手順も確認できます。`;
+    box.className = "feedback ok";
+    $("explainBox").open = true;
+  });
+
+  // 初期描画
+  renderFree();
+  renderQuiz();
+})();
+</script>
+</body>
+</html>
