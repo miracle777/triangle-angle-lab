@@ -63,13 +63,15 @@ HTML・CSS・JavaScriptだけで動作し、外部ライブラリや外部APIは
 
 ```text
 .
+├── .github/
+│   └── CODEOWNERS
 ├── index.html
-└── README.md
+├── README.md
+└── LICENSE
 ```
 
-## ライセンス
+## License
 
-公開時には、用途に応じてライセンスを設定してください。
+This project is licensed under the MIT License.
 
-広く再利用・改変を認める場合は、MIT Licenseなどが選択肢になります。
-# triangle-angle-lab
+詳細は [`LICENSE`](https://chatgpt.com/c/LICENSE) をご覧ください。
