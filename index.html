@@ -158,6 +158,18 @@
       fill:transparent;
       cursor:grab;
     }
+    .handle-hit:hover{
+      fill:rgba(255,193,7,.18);
+      stroke:#f59e0b;
+      stroke-width:3;
+    }
+    .handle:hover,
+    .handle:focus-visible{
+      fill:#ffd166;
+      stroke:#b45309;
+      stroke-width:7;
+      outline:none;
+    }
 
     .controls{
       display:flex;
@@ -180,7 +192,8 @@
       cursor:pointer;
     }
     .btn:hover{
-      background:#f8fafc;
+      background:#d8eaff;
+      border-color:#0f56a3;
     }
     .btn-primary{
       background:var(--line);
@@ -188,7 +201,12 @@
       border-color:var(--line);
     }
     .btn-primary:hover{
-      filter:brightness(.97);
+      background:#0b3f7a;
+      border-color:#0b3f7a;
+    }
+    .tab:not(.active):hover{
+      background:#d8eaff;
+      border-color:#0f56a3;
     }
     label.ctrl{
       display:flex;
