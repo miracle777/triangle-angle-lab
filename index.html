@@ -226,6 +226,21 @@
       margin-top:4px;
       font-size:1.35rem;
     }
+    .angle-input{
+      width:100%;
+      margin-top:4px;
+      padding:6px 8px;
+      border:1px solid var(--border);
+      border-radius:8px;
+      color:var(--ink);
+      background:#fff;
+      font-weight:800;
+      font-size:1.35rem;
+    }
+    .angle-input:focus{
+      outline:3px solid rgba(23,105,194,.2);
+      border-color:var(--line);
+    }
     .sum{
       background:var(--soft);
       border-color:#cfe2ff;
@@ -386,10 +401,15 @@
       </div>
 
       <div class="grid4" aria-label="角度の計算結果">
-        <div class="box">∠A<strong id="outA">--°</strong></div>
-        <div class="box">∠B<strong id="outB">--°</strong></div>
-        <div class="box">∠C<strong id="outC">--°</strong></div>
+        <div class="box">∠A<input id="inputA" class="angle-input" type="number" min="1" max="178" step="0.1" value="" aria-label="角A"></div>
+        <div class="box">∠B<input id="inputB" class="angle-input" type="number" min="1" max="178" step="0.1" value="" aria-label="角B"></div>
+        <div class="box">∠C<input id="inputC" class="angle-input" type="number" min="1" max="178" step="0.1" value="" aria-label="角C"></div>
         <div class="box sum">合計<strong id="outSum">180°</strong></div>
+      </div>
+
+      <div class="controls">
+        <button id="applyAngles" class="btn btn-primary" type="button">入力した角度を反映</button>
+        <span id="angleFeedback" class="feedback" aria-live="polite"></span>
       </div>
 
       <details>
@@ -581,6 +601,12 @@
   const lockBase = $("lockBase");
   const showAngles = $("showAngles");
   const liveFree = $("liveFree");
+  const angleInputs = {
+    A: $("inputA"),
+    B: $("inputB"),
+    C: $("inputC")
+  };
+  const angleFeedback = $("angleFeedback");
 
   const initial = {
     A: { x: 150, y: 430 },
@@ -591,9 +617,9 @@
   let dragging = null;
 
   const els = {
-    A: { point: $("pointA"), hit: $("hitA"), angle: $("angleA"), arc: $("arcA"), name: $("nameA"), out: $("outA") },
-    B: { point: $("pointB"), hit: $("hitB"), angle: $("angleB"), arc: $("arcB"), name: $("nameB"), out: $("outB") },
-    C: { point: $("pointC"), hit: $("hitC"), angle: $("angleC"), arc: $("arcC"), name: $("nameC"), out: $("outC") }
+    A: { point: $("pointA"), hit: $("hitA"), angle: $("angleA"), arc: $("arcA"), name: $("nameA") },
+    B: { point: $("pointB"), hit: $("hitB"), angle: $("angleB"), arc: $("arcB"), name: $("nameB") },
+    C: { point: $("pointC"), hit: $("hitC"), angle: $("angleC"), arc: $("arcC"), name: $("nameC") }
   };
 
   function setCircle(el, p) {
@@ -648,9 +674,9 @@
     setTextPos(els.B.name, namePosition(pts.B, pts.A, pts.C));
     setTextPos(els.C.name, namePosition(pts.C, pts.A, pts.B));
 
-    els.A.out.textContent = `${rounded.A}°`;
-    els.B.out.textContent = `${rounded.B}°`;
-    els.C.out.textContent = `${rounded.C}°`;
+    angleInputs.A.value = rounded.A;
+    angleInputs.B.value = rounded.B;
+    angleInputs.C.value = rounded.C;
     $("outSum").textContent = `${Math.round((angles.A + angles.B + angles.C) * 10) / 10}°`;
 
     const visible = showAngles.checked ? "visible" : "hidden";
@@ -737,6 +763,57 @@
       renderFree(true);
     }
   });
+
+  function applyAngles() {
+    const values = {};
+    for (const key of ["A", "B", "C"]) {
+      values[key] = Number(angleInputs[key].value);
+    }
+    const total = values.A + values.B + values.C;
+    if (Object.values(values).some(value => !Number.isFinite(value) || value <= 0 || value >= 180)) {
+      angleFeedback.textContent = "各角度は 0° より大きく 180° 未満で入力してください。";
+      angleFeedback.className = "feedback warn";
+      return;
+    }
+    if (Math.abs(total - 180) > 0.05) {
+      angleFeedback.textContent = `3つの角度の合計を180°にしてください（現在 ${Math.round(total * 10) / 10}°）。`;
+      angleFeedback.className = "feedback warn";
+      return;
+    }
+
+    const baseLength = distance(initial.A, initial.B);
+    const angleA = values.A * Math.PI / 180;
+    const angleB = values.B * Math.PI / 180;
+    const angleC = values.C * Math.PI / 180;
+    const sideAC = baseLength * Math.sin(angleB) / Math.sin(angleC);
+    const rawPoints = {
+      A: { x: 0, y: 0 },
+      B: { x: baseLength, y: 0 },
+      C: {
+        x: sideAC * Math.cos(angleA),
+        y: -sideAC * Math.sin(angleA)
+      }
+    };
+    const rawX = Object.values(rawPoints).map(point => point.x);
+    const rawY = Object.values(rawPoints).map(point => point.y);
+    const rawWidth = Math.max(...rawX) - Math.min(...rawX);
+    const rawHeight = Math.max(...rawY) - Math.min(...rawY);
+    const scale = Math.min(1, 720 / rawWidth, 380 / rawHeight);
+    const offsetX = (900 - rawWidth * scale) / 2 - Math.min(...rawX) * scale;
+    const offsetY = 430 - Math.max(...rawY) * scale;
+    const candidate = Object.fromEntries(Object.entries(rawPoints).map(([key, point]) => [key, {
+      x: offsetX + point.x * scale,
+      y: offsetY + point.y * scale
+    }]));
+
+    pts.A = candidate.A;
+    pts.B = candidate.B;
+    pts.C = candidate.C;
+    angleFeedback.textContent = "入力した角度を反映しました。";
+    angleFeedback.className = "feedback ok";
+    renderFree(true);
+  }
+  $("applyAngles").addEventListener("click", applyAngles);
 
   // ---------- 問題モード ----------
   const quiz = {
